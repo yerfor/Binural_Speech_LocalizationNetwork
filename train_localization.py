@@ -10,8 +10,8 @@ import os
 import argparse
 
 from src.dataset import BinauralDataset
-from src.models import BinauralNetwork
-from src.trainer import Trainer
+from src.models_localization import LocalizationNetwork
+from src.trainer_localization import LocalizationTrainer
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--dataset_directory",
@@ -49,9 +49,7 @@ os.makedirs(config["artifacts_dir"], exist_ok=True)
 
 dataset = BinauralDataset(dataset_directory=args.dataset_directory, chunk_size_ms=200, overlap=0.5)
 
-net = BinauralNetwork(view_dim=7,
-                      warpnet_layers=4,
-                      warpnet_channels=64,
+net = LocalizationNetwork(view_dim=7,
                       wavenet_blocks=args.blocks,
                       layers_per_block=10,
                       wavenet_channels=64
@@ -60,5 +58,5 @@ net = BinauralNetwork(view_dim=7,
 print(f"receptive field: {net.receptive_field()}")
 print(f"train on {len(dataset.chunks)} chunks")
 print(f"number of trainable parameters: {net.num_trainable_parameters()}")
-trainer = Trainer(config, net, dataset)
+trainer = LocalizationTrainer(config, net, dataset)
 trainer.train()

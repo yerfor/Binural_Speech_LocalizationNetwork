@@ -13,7 +13,7 @@ import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.hyperconv import HyperConvBlock
+from src.hyperconv import HyperConvBlock, ConvBlock
 from src.warping import GeometricTimeWarper, MonotoneTimeWarper
 from src.utils import Net
 
@@ -122,6 +122,7 @@ class HyperConvWavenet(nn.Module):
         return self.rectv_field
 
 
+
 class WaveoutBlock(nn.Module):
     def __init__(self, channels):
         super().__init__()
@@ -176,3 +177,4 @@ class BinauralNetwork(Net):
 
     def receptive_field(self):
         return self.hyperconv_wavenet.receptive_field()
+

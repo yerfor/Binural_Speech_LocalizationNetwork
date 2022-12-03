@@ -115,3 +115,56 @@ class HyperConvBlock(nn.Module):
 
     def receptive_field(self):
         return (self.kernel_size - 1) * self.dilation + 1
+
+
+class ConvBlock(nn.Module):
+    def __init__(self, ch_in, ch_out, kernel_size, dilation=1):
+        '''
+        :param ch_in: (int) input channels
+        :param ch_out: (int) output channels
+        :param z_dim: (int) dimension of the weight-generating input
+        :param kernel_size: (int) size of the filter
+        :param dilation: (int) dilation
+        '''
+        super().__init__()
+
+        self.kernel_size = kernel_size
+        self.dilation = dilation
+        self.ch_in = ch_in
+        self.ch_out = ch_out
+        self.conv = nn.Conv1d(ch_in, ch_out, kernel_size, dilation=dilation)
+        self.residual = nn.Conv1d(ch_out, ch_out, kernel_size=1)
+        self.residual.weight.data.uniform_(-np.sqrt(6.0/ch_out), np.sqrt(6.0/ch_out))
+        self.skip = nn.Conv1d(ch_out, ch_out, kernel_size=1)
+        self.skip.weight.data.uniform_(-np.sqrt(6.0/ch_out), np.sqrt(6.0/ch_out))
+        if not ch_in == ch_out:
+            self.equalize_channels = nn.Conv1d(ch_in, ch_out, kernel_size=1)
+            self.equalize_channels.weight.data.uniform_(-np.sqrt(6.0 / ch_in), np.sqrt(6.0 / ch_in))
+
+    def forward(self, x):
+        '''
+        :param x: input signal as a B x ch_in x T tensor
+        :param z: weight-generating input as a B x z_dim x K tensor (K s.t. T is a multiple of K)
+        :return: output: B x ch_out x T tensor as layer output
+                 skip: B x ch_out x T tensor as skip connection output
+        '''
+        y = self.conv(x)
+        padding = self.dilation * (self.kernel_size - 1)
+        y = F.pad(y, [padding, 0])
+
+        y = th.sin(y)
+        # residual and skip
+        residual = self.residual(y)
+        if not self.ch_in == self.ch_out:
+            x = self.equalize_channels(x)
+        skip = self.skip(y)
+        return (residual + x) / 2, skip
+
+    def receptive_field(self):
+        return (self.kernel_size - 1) * self.dilation + 1
+
+if __name__ == '__main__':
+    conv = ConvBlock(2, 7, 3, 1)
+    x = th.rand([1, 2, 1000])
+    y = conv(x)
+    print(" ")
