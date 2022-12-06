@@ -16,7 +16,7 @@ from src.trainer import Trainer
 parser = argparse.ArgumentParser()
 parser.add_argument("--dataset_directory",
                     type=str,
-                    default="./data/trainset",
+                    default="./data/trainset_localization",
                     help="path to the training data")
 parser.add_argument("--artifacts_directory",
                     type=str,

@@ -49,11 +49,13 @@ os.makedirs(config["artifacts_dir"], exist_ok=True)
 
 dataset = BinauralDataset(dataset_directory=args.dataset_directory, chunk_size_ms=200, overlap=0.5)
 
-net = LocalizationNetwork(view_dim=7,
-                      wavenet_blocks=args.blocks,
-                      layers_per_block=10,
-                      wavenet_channels=64
-                      )
+net = LocalizationNetwork(
+                    # view_dim=7,
+                    view_dim=3,
+                    wavenet_blocks=args.blocks,
+                    layers_per_block=10,
+                    wavenet_channels=64
+                    )
 
 print(f"receptive field: {net.receptive_field()}")
 print(f"train on {len(dataset.chunks)} chunks")

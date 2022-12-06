@@ -8,11 +8,14 @@ LICENSE file in the root directory of this source tree.
 
 import tqdm
 import time
+import os
 import torch as th
 from torch.utils.data import DataLoader
 
 from src.utils import NewbobAdam
 from src.losses import L2Loss, PhaseLoss
+
+from tensorboardX import SummaryWriter
 
 
 class LocalizationTrainer:
@@ -23,6 +26,8 @@ class LocalizationTrainer:
         :param dataset: the dataset to be trained on
         '''
         self.config = config
+        self.writer = SummaryWriter(os.path.join(self.config["artifacts_dir"], "log"))
+
         self.dataset = dataset
         self.dataloader = DataLoader(dataset, batch_size=config["batch_size"], shuffle=True, num_workers=1)
         gpus = [i for i in range(config["num_gpus"])]
@@ -43,6 +48,7 @@ class LocalizationTrainer:
         self.net.module.save(self.config["artifacts_dir"], suffix)
 
     def train(self):
+        self.i_step = 0
         for epoch in range(self.config["epochs"]):
             t_start = time.time()
             loss_stats = {}
@@ -55,6 +61,7 @@ class LocalizationTrainer:
                 data_pbar.set_description(f"loss: {loss_new['accumulated_loss'].item():.7f}")
             for k in loss_stats:
                 loss_stats[k] /= len(self.dataloader)
+                self.writer.add_scalar(k, v, epoch)
             self.optimizer.update_lr(loss_stats["accumulated_loss"])
             t_end = time.time()
             loss_str = "    ".join([f"{k}:{v:.4}" for k, v in loss_stats.items()])
@@ -79,6 +86,7 @@ class LocalizationTrainer:
         mono, binaural, quats = data
         mono, binaural, quats = mono.cuda(), binaural.cuda(), quats.cuda()
         prediction = self.net.forward(binaural)
+        quats = quats[:, 0:3, :]
         l2 = self.l2_loss(prediction["output"], quats)
         intermediate_quats = th.cat([quats] * len(prediction["intermediate"]), dim=1)
         intermediate_prediction = th.cat(prediction["intermediate"], dim=1)
